@@ -12,5 +12,6 @@ func shortCodeGenerator() (string, error) {
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
+
 	return base64.URLEncoding.EncodeToString(bytes)[:length], nil
 }

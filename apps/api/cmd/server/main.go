@@ -2,21 +2,19 @@ package main
 
 import (
 	"log"
-	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	r := chi.NewRouter()
+	r := gin.Default()
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Shorty API"))
+	r.GET("/health", func(c *gin.Context) {
+		c.String(200, "Shorty API")
 	})
 	log.Println("API Running on http://localhost:3000")
 
-	err := http.ListenAndServe(":3000", r)
-	if err != nil {
+	if err := r.Run(":3000"); err != nil {
 		log.Fatal(err)
 	}
 }
