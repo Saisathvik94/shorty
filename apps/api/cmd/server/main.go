@@ -10,7 +10,7 @@ import (
 func main() {
 	r := chi.NewRouter()
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Shorty API"))
 	})
 	log.Println("API Running on http://localhost:3000")
