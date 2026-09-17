@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 )
 
-func shortCodeGenerator() (string, error) {
+func generateShortCode() (string, error) {
 	length := 6
 	bytes := make([]byte, length)
 
