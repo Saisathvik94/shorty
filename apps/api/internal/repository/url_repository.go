@@ -16,11 +16,7 @@ func NewURLRepository(db *pgxpool.Pool) *URLRepository {
 	}
 }
 
-func (r *URLRepository) CreateURL(
-	ctx context.Context,
-	shortCode string,
-	originalURL string,
-) error {
+func (r *URLRepository) CreateURL(ctx context.Context, shortCode string, originalURL string) error {
 	_, err := r.db.Exec(
 		ctx,
 		`
