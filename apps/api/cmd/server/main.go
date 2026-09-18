@@ -60,6 +60,7 @@ func main() {
 
 	// Routes
 	r.POST("/api/urls", handler.CreateURL)
+	r.GET("/:shortCode", handler.Redirect)
 
 	// Graceful Shutdown
 	server := &http.Server{

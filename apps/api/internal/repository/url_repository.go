@@ -43,7 +43,7 @@ func (r *URLRepository) GetURLByShortCode(ctx context.Context, shortCode string)
 	err := r.db.QueryRow(
 		ctx,
 		`
-		SELECT original_url FROM urls WHERE short_code = $1`,
+		SELECT original_url, is_active, expires_at FROM urls WHERE short_code = $1`,
 		shortCode,
 	).Scan(
 		&record.OriginalURL,

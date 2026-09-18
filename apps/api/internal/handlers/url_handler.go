@@ -42,3 +42,16 @@ func (h *URLHandler) CreateURL(c *gin.Context) {
 		"short_code": shortCode,
 	})
 }
+
+func (h *URLHandler) Redirect(c *gin.Context) {
+	shortCode := c.Param("shortCode")
+	originalUrl, err := h.service.GetOriginalURL(c.Request.Context(), shortCode)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusFound, originalUrl)
+
+}
