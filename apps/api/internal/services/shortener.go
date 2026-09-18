@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/url"
+	"time"
 
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -73,4 +74,24 @@ func isUniqueViolation(err error) bool {
 	}
 
 	return false
+}
+
+func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (string, error) {
+	record, err := s.repo.GetURLByShortCode(ctx, shortCode)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !record.IsActive {
+		return "", errors.New("URL is inactive")
+	}
+	if record.ExpiresAt != nil {
+		currentTime := time.Now()
+		if currentTime.After(*record.ExpiresAt) || currentTime.Equal(*record.ExpiresAt) {
+			return "", errors.New("expired")
+		}
+	}
+
+	return record.OriginalURL, nil
 }

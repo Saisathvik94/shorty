@@ -2,12 +2,19 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type URLRepository struct {
 	db *pgxpool.Pool
+}
+
+type URLRecord struct {
+	OriginalURL string
+	IsActive    bool
+	ExpiresAt   *time.Time
 }
 
 func NewURLRepository(db *pgxpool.Pool) *URLRepository {
@@ -30,19 +37,23 @@ func (r *URLRepository) CreateURL(ctx context.Context, shortCode string, origina
 	return err
 }
 
-func (r *URLRepository) GetURLByShortCode(ctx context.Context, shortCode string) (string, error) {
-	var originalURL string
+func (r *URLRepository) GetURLByShortCode(ctx context.Context, shortCode string) (*URLRecord, error) {
+	var record URLRecord
 
 	err := r.db.QueryRow(
 		ctx,
 		`
 		SELECT original_url FROM urls WHERE short_code = $1`,
 		shortCode,
-	).Scan(&originalURL)
+	).Scan(
+		&record.OriginalURL,
+		&record.IsActive,
+		&record.ExpiresAt,
+	)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return originalURL, nil
+	return &record, nil
 }
