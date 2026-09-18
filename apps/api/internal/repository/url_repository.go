@@ -29,3 +29,20 @@ func (r *URLRepository) CreateURL(ctx context.Context, shortCode string, origina
 
 	return err
 }
+
+func (r *URLRepository) GetURLByShortCode(ctx context.Context, shortCode string) (string, error) {
+	var originalURL string
+
+	err := r.db.QueryRow(
+		ctx,
+		`
+		SELECT original_url FROM urls WHERE short_code = $1`,
+		shortCode,
+	).Scan(&originalURL)
+
+	if err != nil {
+		return "", err
+	}
+
+	return originalURL, nil
+}
