@@ -15,6 +15,12 @@ type URLService struct {
 	repo *repository.URLRepository
 }
 
+func NewURLService(repo *repository.URLRepository) *URLService {
+	return &URLService{
+		repo: repo,
+	}
+}
+
 func generateShortCode() (string, error) {
 	length := 6
 	bytes := make([]byte, length)

@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"github.com/Saisathvik94/shorty/apps/api/internal/database"
+	"github.com/Saisathvik94/shorty/apps/api/internal/handlers"
+	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
+	"github.com/Saisathvik94/shorty/apps/api/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -45,6 +48,18 @@ func main() {
 		log.Fatal(err)
 	}
 	defer pool.Close()
+
+	// create repository
+	repo := repository.NewURLRepository(pool)
+
+	// create service
+	service := services.NewURLService(repo)
+
+	// create handler
+	handler := handlers.NewURLHandler(service)
+
+	// Routes
+	r.POST("/api/urls", handler.CreateURL)
 
 	// Graceful Shutdown
 	server := &http.Server{
