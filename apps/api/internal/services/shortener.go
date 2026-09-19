@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -76,20 +77,29 @@ func isUniqueViolation(err error) bool {
 	return false
 }
 
+var (
+	ErrorURLNotFound = errors.New("URL is Not Found")
+	ErrorURLIsactive = errors.New("URL is inactive")
+	ErrorExpired     = errors.New("URL has Expired")
+)
+
 func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (string, error) {
 	record, err := s.repo.GetURLByShortCode(ctx, shortCode)
 
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrorURLNotFound
+		}
 		return "", err
 	}
 
 	if !record.IsActive {
-		return "", errors.New("URL is inactive")
+		return "", ErrorURLIsactive
 	}
 	if record.ExpiresAt != nil {
 		currentTime := time.Now()
 		if currentTime.After(*record.ExpiresAt) || currentTime.Equal(*record.ExpiresAt) {
-			return "", errors.New("expired")
+			return "", ErrorExpired
 		}
 	}
 
