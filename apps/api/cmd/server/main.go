@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Saisathvik94/shorty/apps/api/internal/cache"
 	"github.com/Saisathvik94/shorty/apps/api/internal/database"
 	"github.com/Saisathvik94/shorty/apps/api/internal/handlers"
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
@@ -34,6 +36,10 @@ func main() {
 	if databaseURL == "" {
 		log.Fatal("DATABASE_URL is not set")
 	}
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		log.Fatal("REDIS_URL is not set")
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT is not set")
@@ -47,7 +53,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer pool.Close()
+
+	// Redis client
+	rdb, err := cache.NewRedisClient(redisURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx := context.Background()
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("Could not connect to Redis: %v", err)
+	}
+
+	fmt.Printf("Successfully connected! Redis responded with: %s\n", pong)
 
 	// create repository
 	repo := repository.NewURLRepository(pool)
@@ -86,6 +105,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
+	defer rdb.Close()
+	defer pool.Close()
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Server Forced to ShutDown: %v", err)
