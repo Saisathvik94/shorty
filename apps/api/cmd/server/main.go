@@ -68,13 +68,16 @@ func main() {
 
 	fmt.Printf("Successfully connected! Redis responded with: %s\n", pong)
 
-	// create repository
+	// passing pool to repository
 	repo := repository.NewURLRepository(pool)
 
-	// create service
-	service := services.NewURLService(repo)
+	// passing rb to the cache
+	cache := cache.NewRedisCache(rdb)
 
-	// create handler
+	// passing repo to the services
+	service := services.NewURLService(cache, repo)
+
+	// passing the service to the handler
 	handler := handlers.NewURLHandler(service)
 
 	// Routes

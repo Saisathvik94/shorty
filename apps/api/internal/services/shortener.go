@@ -8,18 +8,21 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/Saisathvik94/shorty/apps/api/internal/cache"
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type URLService struct {
-	repo *repository.URLRepository
+	repo  *repository.URLRepository
+	cache *cache.RedisCache
 }
 
-func NewURLService(repo *repository.URLRepository) *URLService {
+func NewURLService(cache *cache.RedisCache, repo *repository.URLRepository) *URLService {
 	return &URLService{
-		repo: repo,
+		cache: cache,
+		repo:  repo,
 	}
 }
 
