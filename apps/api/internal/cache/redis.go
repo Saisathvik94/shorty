@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -42,4 +43,24 @@ func (c *RedisCache) Get(ctx context.Context, key string) (string, error) {
 
 	return value, nil
 
+}
+func (c *RedisCache) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
+	err := c.rdb.Set(ctx, key, value, ttl).Err()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+func (c *RedisCache) Delete(ctx context.Context, key string) error {
+	_, err := c.rdb.Del(ctx, key).Result()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
