@@ -125,9 +125,18 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 		if err != nil {
 			return "", err
 		}
-		ttl := 60 * time.Second
-		setErr := s.cache.Set(ctx, cacheKey, string(data), ttl)
 
+		if record.ExpiresAt == nil {
+			return "", errors.New("URL has no expiration time")
+		}
+
+		ttl := time.Until(*record.ExpiresAt)
+
+		if ttl <= 0 {
+			return "", ErrorExpired
+		}
+
+		setErr := s.cache.Set(ctx, cacheKey, string(data), ttl)
 		if setErr != nil {
 			return "", setErr
 		}
