@@ -23,15 +23,16 @@ func NewURLRepository(db *pgxpool.Pool) *URLRepository {
 	}
 }
 
-func (r *URLRepository) CreateURL(ctx context.Context, shortCode string, originalURL string) error {
+func (r *URLRepository) CreateURL(ctx context.Context, shortCode string, originalURL string, expiresAt time.Time) error {
 	_, err := r.db.Exec(
 		ctx,
 		`
-		INSERT INTO urls (short_code, original_url)
-		VALUES ($1, $2)
+		INSERT INTO urls (short_code, original_url, expires_at)
+		VALUES ($1, $2, $3)
 		`,
 		shortCode,
 		originalURL,
+		expiresAt,
 	)
 
 	return err

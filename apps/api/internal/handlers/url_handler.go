@@ -9,6 +9,7 @@ import (
 
 type CreateURLRequest struct {
 	OriginalURL string `json:"url" binding:"required"`
+	ExpiresAt   string `json:"expires_at" binding:"required"`
 }
 
 type URLHandler struct {
@@ -29,7 +30,7 @@ func (h *URLHandler) CreateURL(c *gin.Context) {
 		return
 	}
 
-	shortCode, err := h.service.CreateURL(c.Request.Context(), req.OriginalURL)
+	shortCode, err := h.service.CreateURL(c.Request.Context(), req.OriginalURL, req.ExpiresAt)
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

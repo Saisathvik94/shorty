@@ -39,7 +39,7 @@ func generateShortCode() (string, error) {
 	return base64.URLEncoding.EncodeToString(bytes)[:length], nil
 }
 
-func (s *URLService) CreateURL(ctx context.Context, originalURL string) (string, error) {
+func (s *URLService) CreateURL(ctx context.Context, originalURL string, expiresAt string) (string, error) {
 	u, err := url.Parse(originalURL)
 	if err != nil {
 		return "", err
@@ -53,13 +53,31 @@ func (s *URLService) CreateURL(ctx context.Context, originalURL string) (string,
 		return "", errors.New("URL must have a hostname")
 	}
 
+	expiresAtTime, err := time.Parse(time.RFC3339, expiresAt)
+
+	if err != nil {
+		return "", errors.New("invalid expiration time")
+	}
+
+	now := time.Now()
+
+	if !expiresAtTime.After(now) {
+		return "", errors.New("expiration time must be in the future")
+	}
+
+	maxExpiration := now.Add(30 * 24 * time.Hour)
+
+	if expiresAtTime.After(maxExpiration) {
+		return "", errors.New("expiration cannot exceed 30 days")
+	}
+
 	for {
 		shortCode, err := generateShortCode()
 		if err != nil {
 			return "", err
 		}
 
-		err = s.repo.CreateURL(ctx, shortCode, originalURL)
+		err = s.repo.CreateURL(ctx, shortCode, originalURL, expiresAtTime)
 		if err == nil {
 			return shortCode, nil
 		}
