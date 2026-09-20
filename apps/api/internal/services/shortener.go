@@ -162,3 +162,80 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 
 	return record.OriginalURL, nil
 }
+
+func (s *URLService) DeactivateURL(ctx context.Context, shortCode string) error {
+	found, err := s.repo.DeactivateURL(ctx, shortCode)
+
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ErrorURLNotFound
+	}
+
+	cacheErr := s.cache.Delete(ctx, "url:"+shortCode)
+
+	if cacheErr != nil {
+		return cacheErr
+	}
+
+	return nil
+}
+func (s *URLService) DeleteURL(ctx context.Context, shortCode string) error {
+	found, err := s.repo.DeleteURL(ctx, shortCode)
+
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ErrorURLNotFound
+	}
+
+	cacheErr := s.cache.Delete(ctx, "url:"+shortCode)
+
+	if cacheErr != nil {
+		return cacheErr
+	}
+
+	return nil
+}
+
+func (s *URLService) UpdateExpiration(ctx context.Context, expiresAt string, shortCode string) error {
+	expiresAtTime, err := time.Parse(time.RFC3339, expiresAt)
+
+	if err != nil {
+		return errors.New("invalid expiration time")
+	}
+
+	now := time.Now()
+
+	if !expiresAtTime.After(now) {
+		return errors.New("expiration time must be in the future")
+	}
+
+	maxExpiration := now.Add(30 * 24 * time.Hour)
+
+	if expiresAtTime.After(maxExpiration) {
+		return errors.New("expiration cannot exceed 30 days")
+	}
+
+	found, err := s.repo.UpdateExpiration(ctx, expiresAtTime, shortCode)
+
+	if err != nil {
+		return err
+	}
+
+	if !found {
+		return ErrorURLNotFound
+	}
+
+	cacheErr := s.cache.Delete(ctx, "url:"+shortCode)
+
+	if cacheErr != nil {
+		return cacheErr
+	}
+
+	return nil
+}

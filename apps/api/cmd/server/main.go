@@ -83,6 +83,9 @@ func main() {
 	// Routes
 	r.POST("/api/urls", handler.CreateURL)
 	r.GET("/:shortCode", handler.Redirect)
+	r.PUT("/api/urls/:shortCode/deactivate", handler.DeactivateURL)
+	r.DELETE("/api/urls/:shortCode", handler.DeleteURL)
+	r.PATCH("/api/urls/:shortCode/expiration", handler.UpdateExpiration)
 
 	// Graceful Shutdown
 	server := &http.Server{

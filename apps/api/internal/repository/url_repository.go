@@ -58,3 +58,45 @@ func (r *URLRepository) GetURLByShortCode(ctx context.Context, shortCode string)
 
 	return &record, nil
 }
+
+func (r *URLRepository) DeactivateURL(ctx context.Context, shortCode string) (bool, error) {
+	result, err := r.db.Exec(
+		ctx,
+		`UPDATE urls SET is_active = false WHERE short_code = $1`, shortCode,
+	)
+
+	if err != nil {
+		return false, err
+	}
+
+	return result.RowsAffected() > 0, nil
+}
+
+func (r *URLRepository) DeleteURL(ctx context.Context, shortCode string) (bool, error) {
+	result, err := r.db.Exec(
+		ctx,
+		`DELETE FROM urls WHERE short_code = $1`,
+		shortCode,
+	)
+
+	if err != nil {
+		return false, err
+	}
+
+	return result.RowsAffected() > 0, nil
+
+}
+func (r *URLRepository) UpdateExpiration(ctx context.Context, expiresAt time.Time, shortCode string) (bool, error) {
+	result, err := r.db.Exec(
+		ctx,
+		`UPDATE urls SET expires_at = $1 WHERE short_code = $2`,
+		expiresAt,
+		shortCode,
+	)
+
+	if err != nil {
+		return false, err
+	}
+
+	return result.RowsAffected() > 0, nil
+}
