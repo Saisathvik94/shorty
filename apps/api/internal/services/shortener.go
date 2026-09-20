@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/redis/go-redis/v9"
 )
 
 type URLService struct {
@@ -87,13 +89,38 @@ var (
 )
 
 func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (string, error) {
-	record, err := s.repo.GetURLByShortCode(ctx, shortCode)
+	var record repository.URLRecord
+	cacheKey := "url:" + shortCode
+	cacheRecord, err := s.cache.Get(ctx, cacheKey)
 
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", ErrorURLNotFound
+	if errors.Is(err, redis.Nil) {
+		dbRecord, err := s.repo.GetURLByShortCode(ctx, shortCode)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return "", ErrorURLNotFound
+			}
+			return "", err
 		}
+		record = *dbRecord
+		data, err := json.Marshal(record)
+
+		if err != nil {
+			return "", err
+		}
+		ttl := 60 * time.Second
+		setErr := s.cache.Set(ctx, cacheKey, string(data), ttl)
+
+		if setErr != nil {
+			return "", setErr
+		}
+	} else if err != nil {
 		return "", err
+	} else {
+		err := json.Unmarshal([]byte(cacheRecord), &record)
+
+		if err != nil {
+			return "", err
+		}
 	}
 
 	if !record.IsActive {
