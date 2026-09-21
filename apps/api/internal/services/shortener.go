@@ -115,6 +115,7 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 		dbRecord, err := s.repo.GetURLByShortCode(ctx, shortCode)
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
+				s.cache.Set(ctx, cacheKey, "NOT_FOUND", 30*time.Second)
 				return "", ErrorURLNotFound
 			}
 			return "", err
@@ -143,6 +144,11 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 	} else if err != nil {
 		return "", err
 	} else {
+
+		if cacheRecord == "NOT_FOUND" {
+			return "", ErrorURLNotFound
+		}
+
 		err := json.Unmarshal([]byte(cacheRecord), &record)
 
 		if err != nil {
