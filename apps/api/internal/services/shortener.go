@@ -14,11 +14,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/sync/singleflight"
 )
 
 type URLService struct {
-	repo  *repository.URLRepository
-	cache *cache.RedisCache
+	repo         *repository.URLRepository
+	cache        *cache.RedisCache
+	singleflight singleflight.Group
 }
 
 func NewURLService(cache *cache.RedisCache, repo *repository.URLRepository) *URLService {
@@ -112,39 +114,52 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 	cacheRecord, err := s.cache.Get(ctx, cacheKey)
 
 	if errors.Is(err, redis.Nil) {
-		dbRecord, err := s.repo.GetURLByShortCode(ctx, shortCode)
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				s.cache.Set(ctx, cacheKey, "NOT_FOUND", 30*time.Second)
-				return "", ErrorURLNotFound
-			}
-			return "", err
-		}
-		record = *dbRecord
-		data, err := json.Marshal(record)
+		result, err, _ := s.singleflight.Do(
+			shortCode,
+			func() (interface{}, error) {
+				dbRecord, err := s.repo.GetURLByShortCode(ctx, shortCode)
+				if err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
+						s.cache.Set(ctx, cacheKey, "NOT_FOUND", 30*time.Second)
+						return nil, ErrorURLNotFound
+					}
+					return nil, err
+				}
+
+				record := *dbRecord
+
+				if record.ExpiresAt == nil {
+					return nil, errors.New("URL has no expiration time")
+				}
+
+				ttl := time.Until(*record.ExpiresAt)
+
+				if ttl <= 0 {
+					return "", ErrorExpired
+				}
+
+				data, err := json.Marshal(record)
+
+				if err != nil {
+					return nil, err
+				}
+				setErr := s.cache.Set(ctx, cacheKey, string(data), ttl)
+				if setErr != nil {
+					return nil, setErr
+				}
+
+				return record, nil
+			},
+		)
 
 		if err != nil {
 			return "", err
 		}
+		record = result.(repository.URLRecord)
 
-		if record.ExpiresAt == nil {
-			return "", errors.New("URL has no expiration time")
-		}
-
-		ttl := time.Until(*record.ExpiresAt)
-
-		if ttl <= 0 {
-			return "", ErrorExpired
-		}
-
-		setErr := s.cache.Set(ctx, cacheKey, string(data), ttl)
-		if setErr != nil {
-			return "", setErr
-		}
 	} else if err != nil {
 		return "", err
 	} else {
-
 		if cacheRecord == "NOT_FOUND" {
 			return "", ErrorURLNotFound
 		}
