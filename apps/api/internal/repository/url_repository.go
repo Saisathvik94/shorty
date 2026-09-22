@@ -100,3 +100,16 @@ func (r *URLRepository) UpdateExpiration(ctx context.Context, expiresAt time.Tim
 
 	return result.RowsAffected() > 0, nil
 }
+
+func (r *URLRepository) DeactivateExpiredURLs(ctx context.Context) (int64, error) {
+	result, err := r.db.Exec(
+		ctx,
+		`UPDATE urls set is_active=false WHERE is_active=true AND expires_at<=NOW()`,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected(), nil
+}
