@@ -16,6 +16,7 @@ import (
 	"github.com/Saisathvik94/shorty/apps/api/internal/handlers"
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
 	"github.com/Saisathvik94/shorty/apps/api/internal/services"
+	"github.com/Saisathvik94/shorty/apps/api/internal/workers"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -60,8 +61,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx := context.Background()
-	pong, err := rdb.Ping(ctx).Result()
+	pingCtx := context.Background()
+	pong, err := rdb.Ping(pingCtx).Result()
 	if err != nil {
 		log.Fatalf("Could not connect to Redis: %v", err)
 	}
@@ -79,6 +80,12 @@ func main() {
 
 	// passing the service to the handler
 	handler := handlers.NewURLHandler(service)
+
+	// Worker
+	w := workers.NewCleanUpWorker(repo, 30*time.Second)
+	appCtx, cancelApp := context.WithCancel(context.Background())
+	defer cancelApp()
+	go w.Start(appCtx)
 
 	// Routes
 	r.POST("/api/urls", handler.CreateURL)
@@ -109,6 +116,8 @@ func main() {
 	log.Println("Shutting Down the server....")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
+	cancelApp()
 
 	defer cancel()
 	defer rdb.Close()
