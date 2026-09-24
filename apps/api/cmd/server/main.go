@@ -14,10 +14,12 @@ import (
 	"github.com/Saisathvik94/shorty/apps/api/internal/cache"
 	"github.com/Saisathvik94/shorty/apps/api/internal/database"
 	"github.com/Saisathvik94/shorty/apps/api/internal/handlers"
+	"github.com/Saisathvik94/shorty/apps/api/internal/middlewares"
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
 	"github.com/Saisathvik94/shorty/apps/api/internal/services"
 	"github.com/Saisathvik94/shorty/apps/api/internal/workers"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis_rate/v10"
 	"github.com/joho/godotenv"
 )
 
@@ -69,6 +71,7 @@ func main() {
 
 	fmt.Printf("Successfully connected! Redis responded with: %s\n", pong)
 
+	limiter := redis_rate.NewLimiter(rdb)
 	// passing pool to repository
 	repo := repository.NewURLRepository(pool)
 
@@ -88,11 +91,11 @@ func main() {
 	go w.Start(appCtx)
 
 	// Routes
-	r.POST("/api/urls", handler.CreateURL)
+	r.POST("/api/urls", middlewares.RedisRateLimiter(limiter), handler.CreateURL)
 	r.GET("/:shortCode", handler.Redirect)
-	r.PUT("/api/urls/:shortCode/deactivate", handler.DeactivateURL)
-	r.DELETE("/api/urls/:shortCode", handler.DeleteURL)
-	r.PATCH("/api/urls/:shortCode/expiration", handler.UpdateExpiration)
+	r.PUT("/api/urls/:shortCode/deactivate", middlewares.RedisRateLimiter(limiter), handler.DeactivateURL)
+	r.DELETE("/api/urls/:shortCode", middlewares.RedisRateLimiter(limiter), handler.DeleteURL)
+	r.PATCH("/api/urls/:shortCode/expiration", middlewares.RedisRateLimiter(limiter), handler.UpdateExpiration)
 
 	// Graceful Shutdown
 	server := &http.Server{
