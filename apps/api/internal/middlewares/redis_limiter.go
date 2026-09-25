@@ -8,14 +8,14 @@ import (
 	"github.com/go-redis/redis_rate/v10"
 )
 
-func RedisRateLimiter(limiter *redis_rate.Limiter) gin.HandlerFunc {
+func RedisRateLimiter(limiter *redis_rate.Limiter, rateLimit int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
 		ipAddress := c.ClientIP()
 		redisKey := fmt.Sprintf("ratelimit:%s", ipAddress)
 
-		limitRule := redis_rate.PerMinute(10)
+		limitRule := redis_rate.PerMinute(rateLimit)
 
 		res, err := limiter.Allow(ctx, redisKey, limitRule)
 		if err != nil {
