@@ -43,22 +43,31 @@ func main() {
 	if databaseURL == "" {
 		log.Fatal("DATABASE_URL is not set")
 	}
+
 	redisURL := os.Getenv("REDIS_URL")
 	if redisURL == "" {
 		log.Fatal("REDIS_URL is not set")
 	}
+
 	writeRateLimit, err := strconv.Atoi(os.Getenv("RATE_LIMIT_PER_MINUTE"))
 	if err != nil {
 		log.Fatal("RATE_LIMIT_PER_MINUTE is not set")
 	}
+
 	readRateLimit, err := strconv.Atoi(os.Getenv("RATE_LIMIT_REDIRECT_PER_MINUTE"))
 	if err != nil {
 		log.Fatal("RATE_LIMIT_REDIRECT_PER_MINUTE is not set")
 	}
+	maxBodySize, err := strconv.Atoi(os.Getenv("MAX_BODY_SIZE"))
+	if err != nil {
+		log.Fatal("MAX_BODY_SIZE is not set")
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT is not set")
 	}
+
 	if !strings.HasPrefix(port, ":") {
 		port = ":" + port
 	}
@@ -104,13 +113,14 @@ func main() {
 
 	writeRateLimiter := middlewares.RedisRateLimiter(limiter, writeRateLimit, "write")
 	readRateLimiter := middlewares.RedisRateLimiter(limiter, readRateLimit, "read")
+	bodyLimiter := middlewares.BodyLimiter(int64(maxBodySize))
 
 	// Routes
-	r.POST("/api/urls", writeRateLimiter, handler.CreateURL)
+	r.POST("/api/urls", bodyLimiter, writeRateLimiter, handler.CreateURL)
 	r.GET("/:shortCode", readRateLimiter, handler.Redirect)
 	r.PUT("/api/urls/:shortCode/deactivate", writeRateLimiter, handler.DeactivateURL)
 	r.DELETE("/api/urls/:shortCode", writeRateLimiter, handler.DeleteURL)
-	r.PATCH("/api/urls/:shortCode/expiration", writeRateLimiter, handler.UpdateExpiration)
+	r.PATCH("/api/urls/:shortCode/expiration", bodyLimiter, writeRateLimiter, handler.UpdateExpiration)
 
 	// Graceful Shutdown
 	server := &http.Server{
