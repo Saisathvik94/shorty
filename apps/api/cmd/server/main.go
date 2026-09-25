@@ -30,6 +30,11 @@ func main() {
 	// trusted proxies only
 	r.SetTrustedProxies([]string{})
 
+	// security headers
+	securityHeaders := middlewares.SecurityHeaders()
+
+	r.Use(securityHeaders)
+
 	// health route
 	r.GET("/health", func(c *gin.Context) {
 		c.String(200, "Shorty API")
