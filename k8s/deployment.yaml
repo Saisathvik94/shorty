@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: shorty
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: shorty
+
+  template:
+    metadata:
+      labels:
+        app: shorty
+
+    spec:
+      containers:
+        - name: shorty
+          image: ghcr.io/saisathvik94/shorty-api:latest
+
+          envFrom:
+            - secretRef:
+                name: shorty-secrets
+
+          ports:
+            - containerPort: 3000
