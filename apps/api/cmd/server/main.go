@@ -19,6 +19,7 @@ import (
 	"github.com/Saisathvik94/shorty/apps/api/internal/repository"
 	"github.com/Saisathvik94/shorty/apps/api/internal/services"
 	"github.com/Saisathvik94/shorty/apps/api/internal/workers"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis_rate/v10"
 	"github.com/joho/godotenv"
@@ -26,6 +27,39 @@ import (
 
 func main() {
 	r := gin.Default()
+
+	// CORS
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:5173",
+		},
+
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
+
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+		},
+
+		ExposeHeaders: []string{
+			"X-RateLimit-Limit",
+			"X-RateLimit-Remaining",
+			"X-RateLimit-Reset",
+		},
+
+		AllowCredentials: false,
+
+		MaxAge: 12 * time.Hour,
+	}))
 
 	// trusted proxies only
 	r.SetTrustedProxies([]string{})
