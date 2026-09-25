@@ -8,12 +8,12 @@ import (
 	"github.com/go-redis/redis_rate/v10"
 )
 
-func RedisRateLimiter(limiter *redis_rate.Limiter, rateLimit int) gin.HandlerFunc {
+func RedisRateLimiter(limiter *redis_rate.Limiter, rateLimit int, category string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
 
 		ipAddress := c.ClientIP()
-		redisKey := fmt.Sprintf("ratelimit:%s", ipAddress)
+		redisKey := fmt.Sprintf("ratelimit:%s:%s", category, ipAddress)
 
 		limitRule := redis_rate.PerMinute(rateLimit)
 

@@ -27,7 +27,7 @@ import (
 func main() {
 	r := gin.Default()
 
-	// trusted proxys
+	// trusted proxies only
 	r.SetTrustedProxies([]string{})
 
 	// health route
@@ -47,9 +47,13 @@ func main() {
 	if redisURL == "" {
 		log.Fatal("REDIS_URL is not set")
 	}
-	rateLimit, err := strconv.Atoi(os.Getenv("RATE_LIMIT_PER_MINUTE"))
+	writeRateLimit, err := strconv.Atoi(os.Getenv("RATE_LIMIT_PER_MINUTE"))
 	if err != nil {
 		log.Fatal("RATE_LIMIT_PER_MINUTE is not set")
+	}
+	readRateLimit, err := strconv.Atoi(os.Getenv("RATE_LIMIT_REDIRECT_PER_MINUTE"))
+	if err != nil {
+		log.Fatal("RATE_LIMIT_REDIRECT_PER_MINUTE is not set")
 	}
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -98,14 +102,15 @@ func main() {
 	defer cancelApp()
 	go w.Start(appCtx)
 
-	rateLimiter := middlewares.RedisRateLimiter(limiter, rateLimit)
+	writeRateLimiter := middlewares.RedisRateLimiter(limiter, writeRateLimit, "write")
+	readRateLimiter := middlewares.RedisRateLimiter(limiter, readRateLimit, "read")
 
 	// Routes
-	r.POST("/api/urls", rateLimiter, handler.CreateURL)
-	r.GET("/:shortCode", handler.Redirect)
-	r.PUT("/api/urls/:shortCode/deactivate", rateLimiter, handler.DeactivateURL)
-	r.DELETE("/api/urls/:shortCode", rateLimiter, handler.DeleteURL)
-	r.PATCH("/api/urls/:shortCode/expiration", rateLimiter, handler.UpdateExpiration)
+	r.POST("/api/urls", writeRateLimiter, handler.CreateURL)
+	r.GET("/:shortCode", readRateLimiter, handler.Redirect)
+	r.PUT("/api/urls/:shortCode/deactivate", writeRateLimiter, handler.DeactivateURL)
+	r.DELETE("/api/urls/:shortCode", writeRateLimiter, handler.DeleteURL)
+	r.PATCH("/api/urls/:shortCode/expiration", writeRateLimiter, handler.UpdateExpiration)
 
 	// Graceful Shutdown
 	server := &http.Server{
