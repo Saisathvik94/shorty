@@ -22,7 +22,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis_rate/v10"
-	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -74,9 +73,9 @@ func main() {
 		c.String(200, "Shorty API")
 	})
 
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
-	}
+	// if err := godotenv.Load(); err != nil {
+	// 	log.Println("No .env file found")
+	// }
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {

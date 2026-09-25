@@ -7,7 +7,6 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-redis/redis_rate/v10 v10.0.1
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.22.0
 	golang.org/x/sync v0.23.0
 )
