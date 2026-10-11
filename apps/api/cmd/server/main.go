@@ -31,6 +31,7 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:5173",
+			"https://shorty.saisathvik.site",
 		},
 
 		AllowMethods: []string{

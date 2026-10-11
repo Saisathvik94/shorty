@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: shorty-config
+
+data:
+  PORT: "3000"
+  RATE_LIMIT_PER_MINUTE: "10"
+  RATE_LIMIT_REDIRECT_PER_MINUTE: "100"
+  MAX_BODY_SIZE: "16384"

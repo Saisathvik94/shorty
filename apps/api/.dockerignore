@@ -1,0 +1,28 @@
+# Version control
+.git
+.gitignore
+
+# IDEs and OS
+.vscode
+.idea
+.DS_Store
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Logs and temporary files
+*.log
+
+# Unnecessary dependencies
+node_modules
+jspm_packages
+venv
+.venv
+
+# Build outputs
+dist
+build
+out

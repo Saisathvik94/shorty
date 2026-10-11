@@ -1,1 +1,29 @@
 .env
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Terraform variable files
+terraform.tfvars
+*.tfvars
+
+# Terraform plans
+*.tfplan
+*.tfplan.json
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform CLI configuration
+.terraformrc
+terraform.rc
+
+k8s/ingress.yaml
+infra

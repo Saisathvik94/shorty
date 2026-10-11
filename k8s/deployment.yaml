@@ -5,7 +5,13 @@ metadata:
   name: shorty
 
 spec:
-  replicas: 3
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
 
   selector:
     matchLabels:
@@ -17,13 +23,69 @@ spec:
         app: shorty
 
     spec:
+      terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
+
+      imagePullSecrets:
+        - name: ghcr-secret
+
+
+
       containers:
         - name: shorty
-          image: ghcr.io/saisathvik94/shorty-api:latest
+
+          image: ghcr.io/saisathvik94/shorty-api:v1.0.3
+          imagePullPolicy: IfNotPresent
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+
+            capabilities:
+              drop:
+                - ALL
+
+            seccompProfile:
+              type: RuntimeDefault
 
           envFrom:
+            - configMapRef:
+                name: shorty-config
+
             - secretRef:
                 name: shorty-secrets
 
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
