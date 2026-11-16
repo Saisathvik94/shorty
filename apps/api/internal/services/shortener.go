@@ -47,12 +47,20 @@ func (s *URLService) CreateURL(ctx context.Context, originalURL string, expiresA
 		return "", err
 	}
 
+	if !u.IsAbs() {
+		return "", errors.New("URL must be absolute")
+	}
+
 	if u.Scheme != "http" && u.Scheme != "https" {
 		return "", errors.New("invalid URL scheme")
 	}
 
-	if u.Hostname() == "" {
+	if u.Host == "" || u.Hostname() == "" {
 		return "", errors.New("URL must have a hostname")
+	}
+
+	if u.User != nil {
+		return "", errors.New("URL must not contain credentials")
 	}
 
 	expiresAtTime, err := time.Parse(time.RFC3339, expiresAt)
@@ -110,17 +118,25 @@ var (
 
 func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (string, error) {
 	var record repository.URLRecord
+	const sharedLookupTimeout = 3 * time.Second
 	cacheKey := "url:" + shortCode
 	cacheRecord, err := s.cache.Get(ctx, cacheKey)
 
 	if errors.Is(err, redis.Nil) {
-		result, err, _ := s.singleflight.Do(
+		resultCh := s.singleflight.DoChan(
 			shortCode,
 			func() (interface{}, error) {
-				dbRecord, err := s.repo.GetURLByShortCode(ctx, shortCode)
+				lookupCtx, cancel := context.WithTimeout(
+					context.Background(),
+					sharedLookupTimeout,
+				)
+				defer cancel()
+
+				dbRecord, err := s.repo.GetURLByShortCode(lookupCtx, shortCode)
+
 				if err != nil {
 					if errors.Is(err, pgx.ErrNoRows) {
-						s.cache.Set(ctx, cacheKey, "NOT_FOUND", 30*time.Second)
+						s.cache.Set(lookupCtx, cacheKey, "NOT_FOUND", 30*time.Second)
 						return nil, ErrorURLNotFound
 					}
 					return nil, err
@@ -143,7 +159,7 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 				if err != nil {
 					return nil, err
 				}
-				setErr := s.cache.Set(ctx, cacheKey, string(data), ttl)
+				setErr := s.cache.Set(lookupCtx, cacheKey, string(data), ttl)
 				if setErr != nil {
 					return nil, setErr
 				}
@@ -152,10 +168,21 @@ func (s *URLService) GetOriginalURL(ctx context.Context, shortCode string) (stri
 			},
 		)
 
-		if err != nil {
-			return "", err
+		select {
+		case result := <-resultCh:
+			if result.Err != nil {
+				return "", result.Err
+			}
+
+			var ok bool
+			record, ok = result.Val.(repository.URLRecord)
+			if !ok {
+				return "", errors.New("unexpected result type from URL lookup")
+			}
+
+		case <-ctx.Done():
+			return "", ctx.Err()
 		}
-		record = result.(repository.URLRecord)
 
 	} else if err != nil {
 		return "", err
