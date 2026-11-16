@@ -62,7 +62,16 @@ func main() {
 	}))
 
 	// trusted proxies only
-	r.SetTrustedProxies([]string{})
+	trustedProxies := os.Getenv("TRUSTED_PROXIES")
+	var proxies []string
+
+	if trustedProxies != "" {
+		proxies = strings.Split(trustedProxies, ",")
+	}
+
+	if err := r.SetTrustedProxies(proxies); err != nil {
+		log.Fatalf("Invalid trusted proxy configuration: %v", err)
+	}
 
 	// security headers
 	securityHeaders := middlewares.SecurityHeaders()
