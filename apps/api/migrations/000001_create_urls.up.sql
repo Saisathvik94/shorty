@@ -6,3 +6,7 @@ CREATE TABLE urls (
     expires_at TIMESTAMPTZ,
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );
+
+CREATE INDEX idx_urls_active_expires_at
+ON urls (expires_at)
+WHERE is_active = true;
